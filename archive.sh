@@ -1,8 +1,11 @@
 #!/bin/bash
 echo "-----------------" >> /var/log/archive.log
 echo `date` >> /var/log/archive.log
+
 BACKUP_REPO=$(curl --silent -XGET "http://localhost:9200/_snapshot/_all?pretty" | grep "location" | awk '{print $3}')
+
 if [[ "${BACKUP_REPO}" != "\"/mnt/archived/esbackup"\" ]]
+
 then
         echo "Before running this script, you need to run below steps for very first time:"
 
@@ -34,16 +37,21 @@ then
 else
         echo "Backup Repo esbackup found"
 fi
+
 echo "For Restoring Index of particular Month, Reffer file stored here: /mnt/archived/restore_ref" | tee -a /var/log/archive.log
 echo "-----------------" >> /mnt/archived/restore_ref
 echo `date` >> /mnt/archived/restore_ref
+
 curl -s -XGET localhost:9200/_cat/indices?h=i,creation.date.string | grep graylog_ | sort -n|awk '{print $1,$2}' >> /mnt/archived/restore_ref
 
 CURRENT_DATE=$(date +%F)
 
-/usr/bin/curl -s -XGET localhost:9200/_cat/indices?h=i,creation.date | grep graylog_ | sort -rn|awk '{print $1,$2}'| tail -3  > /tmp/olderindices
+/usr/bin/curl -s -XGET localhost:9200/_cat/indices?h=i,creation.date | grep graylog_ | sort -rn|awk '{print $1,$2}'| tail -5  > /tmp/olderindices
+
 FILE="/tmp/olderindices"
+
 FILE_LENGTH=$(wc -l < ${FILE})
+
 STARTING_FROM=0
 
 while read  -r line ; do
@@ -66,9 +74,9 @@ while read  -r line ; do
 
         AGE_OF_INDEX=$(( ($(date -d $CURRENT_DATE +%s) - $(date -d $INDEX_CREATION_DATE +%s)) / 86400 ))
 
-        if (( "${AGE_OF_INDEX}" >= "60" )); then
+        if (( "${AGE_OF_INDEX}" >= "90" )); then
 
-                echo "$INDEX_NAME is 60 days older: Checking in archived Repo.." | tee -a /var/log/archive.log
+                echo "$INDEX_NAME is 90 days older: Checking in archived Repo.." | tee -a /var/log/archive.log
 
                 #Check for already in archived:
 
@@ -82,14 +90,17 @@ while read  -r line ; do
 
                         echo "Deleting ${INDEX_NAME} as it is already Archived" | tee -a /var/log/archive.log
 
-#echo                        /usr/bin/curl -s -X DELETE "http://localhost:9200/${INDEX_NAME}?pretty"  | tee -a /var/log/archive.log > /dev/null 2>&1
-echo                        "/usr/bin/curl -s -X DELETE \"http://localhost:9200/${INDEX_NAME}?pretty\" " | tee -a /var/log/archive.log > /dev/null 2>&1
+                        /usr/bin/curl -s -X DELETE "http://localhost:9200/${INDEX_NAME}?pretty"  | tee -a /var/log/archive.log > /dev/null 2>&1
 
                         if [[ "$?" == "0" ]]
-                        then
-                                DELETED=$(/usr/bin/curl --silent 'http://127.0.0.1:9200/_cat/indices/' | grep ${INDEX_NAME}|awk '{print $3'})
-                        fi
-                        if [[ "${DELETED}" != "${INDEX_NAME}" ]]
+                       
+                       then
+                               
+                               DELETED=$(/usr/bin/curl --silent 'http://127.0.0.1:9200/_cat/indices/' | grep ${INDEX_NAME}|awk '{print $3'})
+                       
+                       fi
+                       
+                       if [[ "${DELETED}" != "${INDEX_NAME}" ]]
 
                         then
 
@@ -105,8 +116,7 @@ echo                        "/usr/bin/curl -s -X DELETE \"http://localhost:9200/
 
                         echo "${INDEX_NAME} is not yet Archived, archiving it, please wait till finish.." | tee -a /var/log/archive.log
 
-#echo                        /usr/bin/curl --silent -XPUT -H "Content-Type: application/json;charset=UTF-8" "http://localhost:9200/_snapshot/esbackup/${INDEX_NAME}?wait_for_completion=true" -d '{ "indices":"'${INDEX_NAME}'", "ignore_unavailable":"true", "include_global_state": false }' | tee -a /var/log/archive.log  > /dev/null 2>&1
-echo                        "/usr/bin/curl --silent -XPUT -H \"Content-Type: application/json;charset=UTF-8\" \"http://localhost:9200/_snapshot/esbackup/${INDEX_NAME}?wait_for_completion=true\" -d '{ \"indices\":\"'${INDEX_NAME}'\", \"ignore_unavailable\":\"true\", \"include_global_state\": false }'" | tee -a /var/log/archive.log  > /dev/null 2>&1
+                        /usr/bin/curl --silent -XPUT -H "Content-Type: application/json;charset=UTF-8" "http://localhost:9200/_snapshot/esbackup/${INDEX_NAME}?wait_for_completion=true" -d '{ "indices":"'${INDEX_NAME}'", "ignore_unavailable":"true", "include_global_state": false }' | tee -a /var/log/archive.log  > /dev/null 2>&1
 
                         if [[ "$?" == "0" ]]; then
 
@@ -116,15 +126,13 @@ echo                        "/usr/bin/curl --silent -XPUT -H \"Content-Type: app
 
                                 then
 
-                                        echo "Successfully Archived $INDEX_NAME" | tee -a /var/log/archive.log
+                                        echo "Successfully Archived ${INDEX_NAME}" | tee -a /var/log/archive.log
 
                                         echo "Now, Deleting from Index list.."
 
-#echo                                        /usr/bin/curl --silent -X DELETE "http://localhost:9200/${INDEX_NAME}?pretty"  | tee -a /var/log/archive.log > /dev/null 2>&1
-echo                                        "/usr/bin/curl --silent -X DELETE \"http://localhost:9200/${INDEX_NAME}?pretty\" " | tee -a /var/log/archive.log > /dev/null 2>&1
+                                        /usr/bin/curl --silent -X DELETE "http://localhost:9200/${INDEX_NAME}?pretty"  | tee -a /var/log/archive.log > /dev/null 2>&1
 
-#echo                                        /usr/bin/curl --silent 'http://127.0.0.1:9200/_cat/indices/' |awk '{print $3,$4,$9'}| grep ${INDEX_NAME}|wc -l | tee -a /var/log/archive.log > /dev/null 2>&1
-echo                                        "/usr/bin/curl --silent 'http://127.0.0.1:9200/_cat/indices/' |awk '{print $3,$4,$9'}| grep ${INDEX_NAME}|wc -l" | tee -a /var/log/archive.log > /dev/null 2>&1
+                                        /usr/bin/curl --silent 'http://127.0.0.1:9200/_cat/indices/' |awk '{print $3,$4,$9'}| grep ${INDEX_NAME}|wc -l | tee -a /var/log/archive.log > /dev/null 2>&1
 
                                         if [[ "$?" == 0 ]]
 
@@ -151,7 +159,7 @@ echo                                        "/usr/bin/curl --silent 'http://127.
                 fi
 
         else
-                echo "$INDEX_NAME is not 60 days older" | tee -a /var/log/archive.log
+                echo "$INDEX_NAME is not 90 days older" | tee -a /var/log/archive.log
 
         fi
 
