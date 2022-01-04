@@ -74,9 +74,36 @@ We can run the archive/basckup script.
 
 # Backup Script:
 
-The backup script (archive.sh) will search for the indices which are older than 90 days and archive them one by one.
-You can find the script at path mentioned below in this document.
+I have created this script which will search for the indices in elasticsearch cluster.
+
+The elasticsearch shows the indices in nano date formate, this script convert the dates into similar format and calculates the index creation date.
+
+based on the index creation date, it will calculate the age of index.
+
+The backup script (archive.sh) will search for the indices and pickups only indices which are older than 90 days and archive them one by one.
+
 The script is made to search for the index starting with "graylog_".
+
+# Execution of Script:
+1. First of all, script will check for the ES backup repo.
+
+2. If it is not found, you would have to setup it manually. ( make sure to put the backup name repo similar to avoid further failuer of execution)
+
+3. It will put a list of all indices into a file under /tmp folder.
+
+4. Then it will start a loop for the lines from first line to last line in that file.
+
+5. Under the loop, it will pick up the index name and start converting dates and calculate the age of index from it's date of creation.
+
+6. Before starting archiving process, the script will check for the index in backup repo.
+
+7. If the index already present in back up repo, it will remove that index.
+
+8. If index is not found in backup repo, it will start archiving the index.
+
+9. After completion of the archiving, it will remove the index from cluster.
+
+10. Depending on the server configuration and index size, script execution will take time.
 
 # Automate Archiving:
 
